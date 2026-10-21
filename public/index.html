@@ -1,0 +1,543 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude Stats</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23d97757'/><g fill='%23fff'><rect x='7' y='7' width='5' height='5' rx='1'/><rect x='14' y='7' width='5' height='5' rx='1' opacity='.6'/><rect x='21' y='7' width='5' height='5' rx='1'/><rect x='7' y='14' width='5' height='5' rx='1' opacity='.4'/><rect x='14' y='14' width='5' height='5' rx='1'/><rect x='21' y='14' width='5' height='5' rx='1' opacity='.7'/><rect x='7' y='21' width='5' height='5' rx='1'/><rect x='14' y='21' width='5' height='5' rx='1' opacity='.5'/><rect x='21' y='21' width='5' height='5' rx='1'/></g></svg>">
+<style>
+:root {
+  --bg: #0d1117;
+  --card: #151b23;
+  --card-2: #1b222c;
+  --border: #2a313c;
+  --text: #e6edf3;
+  --muted: #8b949e;
+  --faint: #6e7681;
+  --accent: #d97757;
+  --live: #3fb950;
+  --c0: #1e252e;
+  --c1: #4a2a1e;
+  --c2: #7f3f25;
+  --c3: #bb5a34;
+  --c4: #f08a5d;
+  --shadow: 0 1px 0 rgba(255,255,255,.03) inset;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #f6f8fa; --card: #ffffff; --card-2: #f3f4f6; --border: #d8dee4;
+    --text: #1f2328; --muted: #59636e; --faint: #818b98; --live: #1a7f37;
+    --c0: #ebedf0; --c1: #f7d2c0; --c2: #eea283; --c3: #d9734a; --c4: #a8471f;
+    --shadow: none; color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --bg: #f6f8fa; --card: #ffffff; --card-2: #f3f4f6; --border: #d8dee4;
+  --text: #1f2328; --muted: #59636e; --faint: #818b98; --live: #1a7f37;
+  --c0: #ebedf0; --c1: #f7d2c0; --c2: #eea283; --c3: #d9734a; --c4: #a8471f;
+  --shadow: none; color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--text);
+  font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 1120px; margin: 0 auto; padding: 24px 16px 48px; }
+header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+.logo { display: flex; align-items: center; gap: 10px; font-weight: 650; font-size: 18px; letter-spacing: -.01em; }
+.logo svg { width: 28px; height: 28px; }
+.spacer { flex: 1; }
+.live { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); padding: 4px 10px; border: 1px solid var(--border); border-radius: 999px; background: var(--card); }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--faint); }
+.live.on .dot { background: var(--live); box-shadow: 0 0 0 0 var(--live); animation: pulse 2s infinite; }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--live) 60%, transparent); } 70% { box-shadow: 0 0 0 7px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
+button.chip { font: inherit; font-size: 12px; color: var(--muted); background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; cursor: pointer; }
+button.chip:hover { color: var(--text); }
+
+.cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow); }
+.stat { padding: 14px 16px; }
+.stat .label { color: var(--muted); font-size: 12px; }
+.stat .value { font-size: 24px; font-weight: 650; letter-spacing: -.02em; margin-top: 2px; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stat .sub { color: var(--faint); font-size: 12px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stat.flash .value { animation: flash 1s ease; }
+@keyframes flash { 0% { color: var(--accent); } 100% { color: var(--text); } }
+
+.panel { padding: 16px; margin-bottom: 16px; min-width: 0; }
+.panel h2 { font-size: 14px; font-weight: 600; margin: 0; }
+.panel-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.panel-head .muted { color: var(--muted); font-size: 12px; }
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+.seg button { font: inherit; font-size: 12px; background: transparent; color: var(--muted); border: 0; padding: 3px 10px; cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--border); }
+.seg button.active { background: var(--card-2); color: var(--text); }
+
+/* heatmap */
+.heat-scroll { overflow-x: auto; padding-bottom: 4px; }
+.heat { display: grid; grid-template-columns: 30px 1fr; gap: 4px; width: max-content; }
+.heat .months { grid-column: 2; position: relative; height: 16px; font-size: 12px; color: var(--text); }
+.heat .months span { position: absolute; top: 0; }
+.heat .days { display: grid; grid-template-rows: repeat(7, 11px); gap: 3px; font-size: 11px; color: var(--text); }
+.heat .days span { line-height: 11px; }
+.grid { display: grid; grid-auto-flow: column; grid-template-rows: repeat(7, 11px); grid-auto-columns: 11px; gap: 3px; }
+.cell { width: 11px; height: 11px; border-radius: 2px; background: var(--c0); outline: 1px solid rgba(127,127,127,.08); outline-offset: -1px; }
+.cell.l1 { background: var(--c1); } .cell.l2 { background: var(--c2); } .cell.l3 { background: var(--c3); } .cell.l4 { background: var(--c4); }
+.cell.future { visibility: hidden; }
+.cell.today { outline: 1px solid var(--accent); }
+.heat-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; font-size: 12px; color: var(--muted); flex-wrap: wrap; }
+.legend { display: inline-flex; align-items: center; gap: 3px; }
+.legend .cell { display: inline-block; }
+.legend span { margin: 0 4px; }
+
+#tip { position: fixed; pointer-events: none; z-index: 10; background: #2b3138; color: #fff; font-size: 12px; padding: 6px 9px; border-radius: 6px; white-space: nowrap; opacity: 0; transform: translate(-50%, -100%); transition: opacity .1s; }
+#tip.show { opacity: 1; }
+#tip::after { content: ""; position: absolute; left: 50%; bottom: -4px; margin-left: -4px; border: 4px solid transparent; border-bottom: 0; border-top-color: #2b3138; }
+
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.two > .panel { margin-bottom: 0; }
+.two + .two, .two + .panel, .panel + .two { margin-top: 16px; }
+@media (max-width: 760px) { .two { grid-template-columns: 1fr; } .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.bars { display: flex; align-items: flex-end; gap: 3px; height: 140px; }
+.bars .bar { flex: 1; background: var(--c3); border-radius: 3px 3px 0 0; min-height: 2px; position: relative; opacity: .9; transition: height .4s ease; }
+.bars .bar:hover { opacity: 1; background: var(--c4); }
+.bars .bar.zero { background: var(--c0); }
+.axis { display: flex; gap: 3px; margin-top: 6px; font-size: 11px; color: var(--faint); }
+.axis span { flex: 1; text-align: center; white-space: nowrap; overflow: visible; }
+
+.hbars { display: flex; flex-direction: column; gap: 8px; }
+.hrow { display: grid; grid-template-columns: 110px 1fr auto; align-items: center; gap: 10px; font-size: 13px; }
+.hrow .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hrow .num { min-width: 60px; white-space: nowrap; text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+.track { height: 8px; background: var(--c0); border-radius: 4px; overflow: hidden; }
+.track > i { display: block; height: 100%; background: var(--c3); border-radius: 4px; transition: width .4s ease; }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; font-weight: 500; color: var(--muted); font-size: 12px; padding: 0 0 8px; }
+td { padding: 7px 0; border-top: 1px solid var(--border); }
+td.r, th.r { text-align: right; font-variant-numeric: tabular-nums; }
+td.name { max-width: 0; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 12px; }
+.feed { list-style: none; margin: 0; padding: 0; font-size: 13px; }
+.feed li { display: grid; grid-template-columns: 64px 1fr auto; gap: 10px; padding: 7px 0; border-top: 1px solid var(--border); align-items: center; }
+.feed li:first-child { border-top: 0; }
+.feed li.new { animation: newrow 1.5s ease; }
+@keyframes newrow { from { background: color-mix(in srgb, var(--accent) 18%, transparent); } to { background: transparent; } }
+.feed .time { color: var(--faint); font-variant-numeric: tabular-nums; font-size: 12px; }
+.feed .what { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.feed .num { color: var(--muted); font-variant-numeric: tabular-nums; }
+.tag { display: inline-block; font-size: 11px; padding: 0 6px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted); margin-right: 6px; }
+.empty { color: var(--muted); padding: 40px 0; text-align: center; }
+footer { color: var(--faint); font-size: 12px; margin-top: 24px; text-align: center; }
+footer code { font-size: 11px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#d97757"/><g fill="#fff"><rect x="7" y="7" width="5" height="5" rx="1"/><rect x="14" y="7" width="5" height="5" rx="1" opacity=".6"/><rect x="21" y="7" width="5" height="5" rx="1"/><rect x="7" y="14" width="5" height="5" rx="1" opacity=".4"/><rect x="14" y="14" width="5" height="5" rx="1"/><rect x="21" y="14" width="5" height="5" rx="1" opacity=".7"/><rect x="7" y="21" width="5" height="5" rx="1"/><rect x="14" y="21" width="5" height="5" rx="1" opacity=".5"/><rect x="21" y="21" width="5" height="5" rx="1"/></g></svg>
+      Claude Stats
+    </div>
+    <div class="spacer"></div>
+    <span class="live" id="live"><span class="dot"></span><span id="liveText"></span></span>
+    <button class="chip" id="langBtn"></button>
+    <button class="chip" id="themeBtn" aria-label="Theme">◐</button>
+  </header>
+
+  <section class="cards" id="cards"></section>
+
+  <section class="card panel">
+    <div class="panel-head">
+      <h2 id="heatTitle"></h2>
+      <div class="spacer"></div>
+      <div class="seg" id="metricSeg"></div>
+    </div>
+    <div class="heat-scroll" id="heatScroll"><div class="heat" id="heat"></div></div>
+    <div class="heat-foot">
+      <span id="heatSummary"></span>
+      <span class="legend"><span data-t="less"></span><i class="cell"></i><i class="cell l1"></i><i class="cell l2"></i><i class="cell l3"></i><i class="cell l4"></i><span data-t="more"></span></span>
+    </div>
+  </section>
+
+  <section class="card panel">
+    <div class="panel-head"><h2 data-t="last30"></h2><div class="spacer"></div><span class="muted" id="last30Note"></span></div>
+    <div class="bars" id="daily"></div>
+    <div class="axis" id="dailyAxis"></div>
+  </section>
+
+  <div class="two">
+    <section class="card panel">
+      <div class="panel-head"><h2 data-t="byHour"></h2><div class="spacer"></div><span class="muted" id="peakHour"></span></div>
+      <div class="bars" id="hours"></div>
+      <div class="axis" id="hoursAxis"></div>
+    </section>
+    <section class="card panel">
+      <div class="panel-head"><h2 data-t="byWeekday"></h2><div class="spacer"></div><span class="muted" id="peakDay"></span></div>
+      <div class="hbars" id="weekdays"></div>
+    </section>
+  </div>
+
+  <div class="two">
+    <section class="card panel">
+      <div class="panel-head"><h2 data-t="models"></h2></div>
+      <div class="hbars" id="models"></div>
+      <div class="heat-foot" style="margin-top:14px"><span id="tokenSplit"></span></div>
+      <div class="heat-foot" style="margin-top:6px;color:var(--faint)"><span id="costNote"></span></div>
+    </section>
+    <section class="card panel">
+      <div class="panel-head"><h2 data-t="activity"></h2><div class="spacer"></div><span class="muted" id="rate"></span></div>
+      <ul class="feed" id="feed"></ul>
+    </section>
+  </div>
+
+  <section class="card panel">
+    <div class="panel-head"><h2 data-t="projects"></h2></div>
+    <table>
+      <thead><tr><th data-t="project"></th><th class="r" data-t="prompts"></th><th class="r" data-t="tokens"></th><th class="r" style="padding-left:16px" data-t="cost"></th><th class="r" style="padding-left:16px" data-t="lastUsed"></th></tr></thead>
+      <tbody id="projects"></tbody>
+    </table>
+  </section>
+
+  <footer id="footer"></footer>
+</div>
+<div id="tip"></div>
+
+<script>
+const I18N = {
+  en: {
+    live: 'Live', offline: 'Reconnecting…', updated: 'updated',
+    totalTokens: 'Total tokens', output: 'Output tokens', prompts: 'Prompts', sessions: 'Sessions',
+    activeDays: 'Active days', today: 'Today', streak: 'Current streak', favModel: 'Favorite model', avgDay: 'Avg / active day',
+    longest: 'longest', days: d => d === 1 ? '1 day' : `${d} days`, since: 'since', responses: 'responses',
+    heatTitle: (n, m) => `${n} ${m} in the last year`, metric: { tokens: 'tokens', output: 'output tokens', prompts: 'prompts', responses: 'responses', cost: 'API cost' },
+    metricShort: { tokens: 'Tokens', output: 'Output', prompts: 'Prompts', responses: 'Responses', cost: 'Cost' },
+    cost: 'Cost', costNote: (rate, date) => `Cost = Anthropic API list prices${rate ? ` · USD/PLN ${rate} (NBP, ${date})` : ''}. On a Pro/Max plan you pay the subscription, not this.`,
+    less: 'Less', more: 'More', last30: 'Last 30 days', byHour: 'By hour of day', byWeekday: 'By day of week',
+    models: 'Models', activity: 'Live activity', projects: 'Projects', project: 'Project', tokens: 'Tokens', lastUsed: 'Last used',
+    peak: 'peak', on: 'on', none: (m) => `No ${m}`, cached: 'cache reads', cacheWrite: 'cache writes', input: 'input',
+    perMin: 'last 5 min', empty: 'No Claude Code activity found yet. Use Claude Code and this page updates by itself.',
+    footer: (src, tz) => `Read locally from <code>${src}</code> · ${tz} · nothing leaves your computer`,
+    activeDaysOf: (a, b) => `of ${b} days`, ofTotal: 'of responses', mostActive: 'most active',
+  },
+  pl: {
+    live: 'Na żywo', offline: 'Łączenie…', updated: 'aktualizacja',
+    totalTokens: 'Tokeny łącznie', output: 'Tokeny output', prompts: 'Prompty', sessions: 'Sesje',
+    activeDays: 'Aktywne dni', today: 'Dziś', streak: 'Obecna seria', favModel: 'Ulubiony model', avgDay: 'Średnio / aktywny dzień',
+    longest: 'najdłuższa', days: d => d === 1 ? '1 dzień' : `${d} dni`, since: 'od', responses: 'odpowiedzi',
+    heatTitle: (n, m) => `${n} ${m} w ostatnim roku`, metric: { tokens: 'tokenów', output: 'tokenów output', prompts: 'promptów', responses: 'odpowiedzi', cost: 'kosztu API' },
+    metricShort: { tokens: 'Tokeny', output: 'Output', prompts: 'Prompty', responses: 'Odpowiedzi', cost: 'Koszt' },
+    cost: 'Koszt', costNote: (rate, date) => `Koszt = cennik API Anthropic${rate ? ` · kurs USD/PLN ${rate} (NBP, ${date})` : ''}. Na planie Pro/Max płacisz abonament, nie tę kwotę.`,
+    less: 'Mniej', more: 'Więcej', last30: 'Ostatnie 30 dni', byHour: 'Wg godziny', byWeekday: 'Wg dnia tygodnia',
+    models: 'Modele', activity: 'Aktywność na żywo', projects: 'Projekty', project: 'Projekt', tokens: 'Tokeny', lastUsed: 'Ostatnio',
+    peak: 'szczyt', on: '·', none: (m) => `Brak ${m}`, cached: 'odczyt z cache', cacheWrite: 'zapis do cache', input: 'input',
+    perMin: 'ostatnie 5 min', empty: 'Nie znaleziono jeszcze aktywności Claude Code. Użyj Claude Code, a strona zaktualizuje się sama.',
+    footer: (src, tz) => `Dane czytane lokalnie z <code>${src}</code> · ${tz} · nic nie opuszcza twojego komputera`,
+    activeDaysOf: (a, b) => `z ${b} dni`, ofTotal: 'odpowiedzi', mostActive: 'najaktywniej',
+  },
+};
+
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+};
+let lang = store.get('cs-lang') || ((navigator.language || 'en').toLowerCase().startsWith('pl') ? 'pl' : 'en');
+let metric = store.get('cs-metric') || 'tokens';
+let theme = store.get('cs-theme');
+let data = null;
+let prevTotals = null;
+let prevRecentTs = 0;
+
+const $ = id => document.getElementById(id);
+const T = () => I18N[lang];
+const locale = () => (lang === 'pl' ? 'pl-PL' : 'en-US');
+const fmt = n => new Intl.NumberFormat(locale(), { notation: n >= 10000 ? 'compact' : 'standard', maximumFractionDigits: 1 }).format(n);
+const fmtFull = n => new Intl.NumberFormat(locale()).format(n);
+function cur(v, code) {
+  const big = v >= 10000;
+  return new Intl.NumberFormat(locale(), { style: 'currency', currency: code, notation: big ? 'compact' : 'standard', minimumFractionDigits: big ? 0 : 2, maximumFractionDigits: big ? 1 : 2 }).format(v);
+}
+// "$12.34 · 47,99 zł"; PLN appears once the NBP rate has loaded
+function money(usd) {
+  if (usd == null || Number.isNaN(usd)) return '—';
+  if (!usd) return cur(0, 'USD');
+  if (usd < 0.01) return '<' + cur(0.01, 'USD');
+  const rate = data && data.fx && data.fx.usdPln;
+  return rate ? `${cur(usd, 'USD')} · ${cur(usd * rate, 'PLN')}` : cur(usd, 'USD');
+}
+const paren = usd => `(${money(usd)})`;
+// value of the selected metric for a record, with the cost in parentheses next to token counts
+function metricText(rec) {
+  const t = T();
+  if (metric === 'cost') return `${money(rec.cost || 0)}`;
+  const s = `${fmt(rec[metric] || 0)} ${t.metric[metric]}`;
+  return metric === 'tokens' && rec.cost ? `${s} ${paren(rec.cost)}` : s;
+}
+const p2 = n => String(n).padStart(2, '0');
+const dayKey = d => `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`;
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+function prettyModel(id) {
+  const s = String(id).replace(/-\d{8}$/, '');
+  const m = s.match(/^claude-([a-z]+)-(\d+)(?:-(\d+))?$/);
+  if (m) return `${m[1][0].toUpperCase()}${m[1].slice(1)} ${m[2]}${m[3] ? '.' + m[3] : ''}`;
+  const old = s.match(/^claude-(\d+)(?:-(\d+))?-([a-z]+)$/);
+  if (old) return `${old[3][0].toUpperCase()}${old[3].slice(1)} ${old[1]}${old[2] ? '.' + old[2] : ''}`;
+  return s;
+}
+
+function relTime(ts) {
+  const rtf = new Intl.RelativeTimeFormat(locale(), { numeric: 'auto' });
+  const diff = (ts - Date.now()) / 1000;
+  const units = [['year', 31536000], ['month', 2592000], ['week', 604800], ['day', 86400], ['hour', 3600], ['minute', 60]];
+  for (const [u, s] of units) if (Math.abs(diff) >= s) return rtf.format(Math.round(diff / s), u);
+  return rtf.format(Math.round(diff), 'second');
+}
+
+// ---------- derive ----------
+function derive(d) {
+  const daily = {}, hours = Array.from({ length: 24 }, () => blank()), weekdays = Array.from({ length: 7 }, () => blank());
+  function blank() { return { tokens: 0, cost: 0, output: 0, prompts: 0, responses: 0 }; }
+  function add(a, b) { a.tokens += b.tokens; a.cost += b.cost || 0; a.output += b.output; a.prompts += b.prompts; a.responses += b.responses; }
+  for (const [k, v] of Object.entries(d.hourly)) {
+    const day = k.slice(0, 10), h = +k.slice(11, 13);
+    add(daily[day] ||= blank(), v);
+    add(hours[h], v);
+    const wd = new Date(day + 'T12:00:00').getDay();
+    add(weekdays[wd], v);
+  }
+  const activeKeys = Object.keys(daily).filter(k => daily[k].responses || daily[k].prompts).sort();
+  const active = new Set(activeKeys);
+  // streaks
+  let longest = 0, run = 0, prev = null;
+  for (const k of activeKeys) {
+    const cur = new Date(k + 'T12:00:00');
+    run = prev && Math.round((cur - prev) / 864e5) === 1 ? run + 1 : 1;
+    longest = Math.max(longest, run); prev = cur;
+  }
+  let current = 0;
+  const c = new Date(); c.setHours(12, 0, 0, 0);
+  if (!active.has(dayKey(c))) c.setDate(c.getDate() - 1);
+  while (active.has(dayKey(c))) { current++; c.setDate(c.getDate() - 1); }
+  return { daily, hours, weekdays, activeDays: activeKeys.length, firstDay: activeKeys[0], longest, current };
+}
+
+// ---------- render ----------
+function render() {
+  if (!data) return;
+  const t = T(), D = derive(data), tot = data.totals;
+  document.documentElement.lang = lang;
+  document.querySelectorAll('[data-t]').forEach(el => { const v = t[el.dataset.t]; if (typeof v === 'string') el.textContent = v; });
+  $('langBtn').textContent = lang === 'pl' ? 'EN' : 'PL';
+
+  const models = Object.entries(data.models).sort((a, b) => b[1].responses - a[1].responses);
+  const fav = models[0];
+  const span = data.first ? Math.max(1, Math.round((new Date(dayKey(new Date())) - new Date(dayKey(new Date(data.first)))) / 864e5) + 1) : 0;
+  const todayStats = D.daily[dayKey(new Date())] || { tokens: 0, cost: 0, output: 0, prompts: 0, responses: 0 };
+  const cards = [
+    ['tokens', t.totalTokens, fmt(tot.tokens), paren(tot.cost)],
+    ['output', t.output, fmt(tot.output), `${fmtFull(tot.responses)} ${t.responses}`],
+    ['prompts', t.prompts, fmtFull(tot.prompts), `${fmtFull(tot.sessions)} ${t.sessions.toLowerCase()}`],
+    ['avg', t.avgDay, D.activeDays ? fmt(Math.round(tot.tokens / D.activeDays)) : '0', D.activeDays ? paren(tot.cost / D.activeDays) : ''],
+    ['today', t.today, fmt(todayStats.tokens), `${paren(todayStats.cost)} · ${fmtFull(todayStats.prompts)} ${t.prompts.toLowerCase()}`],
+    ['active', t.activeDays, fmtFull(D.activeDays), span ? t.activeDaysOf(D.activeDays, span) : ''],
+    ['streak', t.streak, t.days(D.current), `${t.longest}: ${t.days(D.longest)}`],
+    ['fav', t.favModel, fav ? prettyModel(fav[0]) : '—', fav ? `${Math.round(fav[1].responses / tot.responses * 100)}% ${t.ofTotal}` : ''],
+  ];
+  $('cards').innerHTML = cards.map(([id, label, value, sub]) =>
+    `<div class="card stat" id="stat-${id}"><div class="label">${esc(label)}</div><div class="value" title="${esc(value)}">${esc(value)}</div><div class="sub">${esc(sub)}</div></div>`).join('');
+  if (prevTotals && prevTotals.tokens !== tot.tokens) ['tokens', 'output', 'today', 'avg'].forEach(id => $('stat-' + id).classList.add('flash'));
+  prevTotals = { ...tot };
+
+  renderHeatmap(D);
+  renderDaily(D);
+  renderHours(D);
+  renderWeekdays(D);
+  renderModels(models, tot);
+  renderFeed();
+  renderProjects();
+
+  $('footer').innerHTML = t.footer(esc(data.source), esc(data.timeZone));
+  $('liveText').textContent = `${t.live} · ${t.updated} ${new Date(data.generatedAt).toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+
+  if (!tot.responses) $('cards').insertAdjacentHTML('afterend', `<div class="card panel empty">${esc(t.empty)}</div>`);
+}
+
+function levels(values) {
+  const nz = values.filter(v => v > 0).sort((a, b) => a - b);
+  if (!nz.length) return () => 0;
+  const q = p => nz[Math.min(nz.length - 1, Math.floor(p * nz.length))];
+  const q1 = q(.25), q2 = q(.5), q3 = q(.75);
+  return v => (v <= 0 ? 0 : v <= q1 ? 1 : v <= q2 ? 2 : v <= q3 ? 3 : 4);
+}
+
+function renderHeatmap(D) {
+  const t = T();
+  $('metricSeg').innerHTML = ['tokens', 'cost', 'output', 'prompts', 'responses'].map(m =>
+    `<button data-m="${m}" class="${m === metric ? 'active' : ''}">${t.metricShort[m]}</button>`).join('');
+
+  const today = new Date(); today.setHours(12, 0, 0, 0);
+  const start = new Date(today); start.setDate(start.getDate() - 364 - start.getDay());
+  const cells = [], vals = [];
+  let yearTotal = 0, yearCost = 0;
+  for (const d = new Date(start); d <= today || d.getDay() !== 0; d.setDate(d.getDate() + 1)) {
+    const k = dayKey(d), v = (D.daily[k] || {})[metric] || 0, future = d > today;
+    if (!future) { vals.push(v); yearTotal += v; yearCost += (D.daily[k] || {}).cost || 0; }
+    cells.push({ k, v, future, date: new Date(d) });
+  }
+  const lvl = levels(vals);
+  const weeks = cells.length / 7;
+  const monthFmt = new Intl.DateTimeFormat(locale(), { month: 'short' });
+  const marks = [];
+  for (let w = 0, lastMonth = -1; w < weeks; w++) {
+    const d = cells[w * 7 + 6].date;
+    if (d.getMonth() !== lastMonth) { marks.push({ w, d }); lastMonth = d.getMonth(); }
+  }
+  const months = marks
+    .filter((m, i) => (marks[i + 1] ? marks[i + 1].w - m.w : weeks - m.w) >= 3)
+    .map(m => `<span style="left:${m.w * 14}px">${esc(monthFmt.format(m.d).replace('.', ''))}</span>`).join('');
+  const wdFmt = new Intl.DateTimeFormat(locale(), { weekday: 'short' });
+  const dayLabels = [0, 1, 2, 3, 4, 5, 6].map(i => {
+    const d = new Date(start); d.setDate(d.getDate() + i);
+    return `<span>${i % 2 ? esc(wdFmt.format(d).replace('.', '')) : ''}</span>`;
+  }).join('');
+  const todayKey = dayKey(today);
+  $('heat').innerHTML =
+    `<div class="months" style="width:${weeks * 14}px">${months}</div>` +
+    `<div class="days">${dayLabels}</div>` +
+    `<div class="grid">${cells.map(c => `<i class="cell l${lvl(c.v)}${c.future ? ' future' : ''}${c.k === todayKey ? ' today' : ''}" data-k="${c.k}" data-v="${c.v}"></i>`).join('')}</div>`;
+  $('heatTitle').textContent = t.heatTitle(metricText({ [metric]: yearTotal, cost: yearCost }), '').replace(/\s+/g, ' ');
+  const best = Object.entries(D.daily).sort((a, b) => b[1][metric] - a[1][metric])[0];
+  $('heatSummary').textContent = best && best[1][metric] ? `${t.mostActive}: ${fullDate(best[0])} · ${metricText(best[1])}` : '';
+  const sc = $('heatScroll');
+  if (!sc.dataset.scrolled) { sc.scrollLeft = sc.scrollWidth; sc.dataset.scrolled = 1; }
+}
+
+function fullDate(k) {
+  return new Date(k + 'T12:00:00').toLocaleDateString(locale(), { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function barChart(el, axisEl, items, labelEvery) {
+  const max = Math.max(1, ...items.map(i => i.v));
+  el.innerHTML = items.map(i => `<div class="bar${i.v ? '' : ' zero'}" style="height:${Math.max(1.5, i.v / max * 100)}%" data-tip="${esc(i.tip)}"></div>`).join('');
+  axisEl.innerHTML = items.map((i, n) => `<span>${n % labelEvery === 0 ? esc(i.label) : ''}</span>`).join('');
+}
+
+function renderDaily(D) {
+  const t = T(), items = [];
+  const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() - 29);
+  let sum = 0, sumCost = 0;
+  for (let i = 0; i < 30; i++, d.setDate(d.getDate() + 1)) {
+    const k = dayKey(d), rec = D.daily[k] || { tokens: 0, cost: 0, output: 0, prompts: 0, responses: 0 }, v = rec[metric] || 0; sum += v; sumCost += rec.cost;
+    items.push({ v, label: `${d.getDate()}.${p2(d.getMonth() + 1)}`, tip: `${metricText(rec)} · ${fullDate(k)}` });
+  }
+  barChart($('daily'), $('dailyAxis'), items, 5);
+  $('last30Note').textContent = metricText({ [metric]: sum, cost: sumCost });
+}
+
+function renderHours(D) {
+  const t = T();
+  const items = D.hours.map((h, i) => ({ v: h[metric], label: String(i), tip: `${p2(i)}:00–${p2(i)}:59 · ${metricText(h)}` }));
+  barChart($('hours'), $('hoursAxis'), items, 3);
+  const peak = items.reduce((a, b, i) => (b.v > items[a].v ? i : a), 0);
+  $('peakHour').textContent = items[peak].v ? `${t.peak}: ${p2(peak)}:00–${p2((peak + 1) % 24)}:00` : '';
+}
+
+function renderWeekdays(D) {
+  const t = T();
+  const order = [1, 2, 3, 4, 5, 6, 0];
+  const fmtWd = new Intl.DateTimeFormat(locale(), { weekday: 'long' });
+  const name = i => { const d = new Date(2026, 0, 4 + i); const s = fmtWd.format(d); return s[0].toUpperCase() + s.slice(1); };
+  const max = Math.max(1, ...D.weekdays.map(w => w[metric]));
+  $('weekdays').innerHTML = order.map(i => {
+    const v = D.weekdays[i][metric];
+    return `<div class="hrow"><span class="name">${esc(name(i))}</span><span class="track"><i style="width:${v / max * 100}%"></i></span><span class="num" title="${esc(metricText(D.weekdays[i]))}">${esc(metric === 'cost' ? money(v) : fmt(v))}</span></div>`;
+  }).join('');
+  const best = order.reduce((a, b) => (D.weekdays[b][metric] > D.weekdays[a][metric] ? b : a), order[0]);
+  $('peakDay').textContent = D.weekdays[best][metric] ? `${t.peak}: ${name(best).toLowerCase()}` : '';
+}
+
+function renderModels(models, tot) {
+  const t = T();
+  const max = Math.max(1, ...models.map(m => m[1].responses));
+  $('models').innerHTML = models.map(([id, m]) =>
+    `<div class="hrow" title="${esc(id)}"><span class="name">${esc(prettyModel(id))}</span><span class="track"><i style="width:${m.responses / max * 100}%"></i></span><span class="num">${Math.round(m.responses / Math.max(1, tot.responses) * 100)}% · ${esc(fmt(m.tokens))} ${esc(paren(m.cost))}</span></div>`).join('') || `<div class="muted">—</div>`;
+  $('tokenSplit').textContent = `${t.input} ${fmt(tot.input)} · output ${fmt(tot.output)} · ${t.cacheWrite} ${fmt(tot.cacheWrite)} · ${t.cached} ${fmt(tot.cacheRead)}`;
+  $('costNote').textContent = t.costNote(data.fx && data.fx.usdPln ? new Intl.NumberFormat(locale(), { maximumFractionDigits: 4 }).format(data.fx.usdPln) : '', data.fx && data.fx.date);
+}
+
+function renderFeed() {
+  const t = T();
+  $('feed').innerHTML = data.recent.map(r => {
+    const d = new Date(r.ts);
+    const isToday = dayKey(d) === dayKey(new Date());
+    const time = isToday ? d.toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' }) : d.toLocaleDateString(locale(), { day: 'numeric', month: 'short' });
+    return `<li class="${r.ts > prevRecentTs && prevRecentTs ? 'new' : ''}"><span class="time" title="${esc(d.toLocaleString(locale()))}">${esc(time)}</span><span class="what"><span class="tag">${esc(prettyModel(r.model))}</span>${esc(r.project)}</span><span class="num">+${fmt(r.output)} out · ${esc(money(r.cost))}</span></li>`;
+  }).join('') || `<li><span></span><span class="what muted">—</span><span></span></li>`;
+  prevRecentTs = data.recent[0] ? data.recent[0].ts : prevRecentTs;
+  const r = data.lastFiveMinutes;
+  $('rate').textContent = `${t.perMin}: ${fmt(r.tokens)} ${paren(r.cost)}`;
+}
+
+function renderProjects() {
+  const rows = Object.entries(data.projects).sort((a, b) => b[1].tokens - a[1].tokens).slice(0, 10);
+  $('projects').innerHTML = rows.map(([name, p]) =>
+    `<tr><td class="name" title="${esc(name)}">${esc(name)}</td><td class="r">${fmtFull(p.prompts)}</td><td class="r" style="padding-left:16px">${fmt(p.tokens)}</td><td class="r" style="padding-left:16px;white-space:nowrap">${esc(money(p.cost))}</td><td class="r" style="padding-left:16px;white-space:nowrap;color:var(--muted)">${esc(relTime(p.last))}</td></tr>`).join('');
+}
+
+// ---------- interactions ----------
+const tip = $('tip');
+document.addEventListener('mouseover', e => {
+  const cell = e.target.closest('.grid .cell:not(.future)');
+  const bar = e.target.closest('[data-tip]');
+  let text = null;
+  if (cell) {
+    const v = +cell.dataset.v, t = T();
+    const rec = data && derive(data).daily[cell.dataset.k];
+    text = `${v && rec ? metricText(rec) : t.none(t.metric[metric])} · ${fullDate(cell.dataset.k)}`;
+  } else if (bar) text = bar.dataset.tip;
+  if (!text) { tip.classList.remove('show'); return; }
+  const r = (cell || bar).getBoundingClientRect();
+  tip.textContent = text;
+  tip.style.left = Math.min(window.innerWidth - tip.offsetWidth / 2 - 8, Math.max(tip.offsetWidth / 2 + 8, r.left + r.width / 2)) + 'px';
+  tip.style.top = (r.top - 8) + 'px';
+  tip.classList.add('show');
+});
+document.addEventListener('scroll', () => tip.classList.remove('show'), true);
+
+$('metricSeg').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  metric = b.dataset.m; store.set('cs-metric', metric); render();
+});
+$('langBtn').addEventListener('click', () => { lang = lang === 'pl' ? 'en' : 'pl'; store.set('cs-lang', lang); render(); });
+function applyTheme() { if (theme) document.documentElement.dataset.theme = theme; else delete document.documentElement.dataset.theme; }
+$('themeBtn').addEventListener('click', () => {
+  const dark = theme ? theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  theme = dark ? 'light' : 'dark'; store.set('cs-theme', theme); applyTheme();
+});
+applyTheme();
+
+// ---------- live connection ----------
+function connect() {
+  const es = new EventSource('/events');
+  es.onopen = () => $('live').classList.add('on');
+  es.onmessage = e => {
+    const next = JSON.parse(e.data);
+    if (data && data.version && next.version !== data.version) { location.reload(); return; }
+    data = next; $('live').classList.add('on'); render(); };
+  es.onerror = () => { $('live').classList.remove('on'); $('liveText').textContent = T().offline; };
+}
+$('liveText').textContent = T().offline;
+// ?static loads one snapshot without a live connection (used for headless screenshots)
+if (new URLSearchParams(location.search).has('static')) {
+  fetch('/api/stats').then(r => r.json()).then(d => { data = d; $('live').classList.add('on'); render(); });
+} else {
+  connect();
+}
+// keep relative times and "today" fresh even when nothing new arrives
+setInterval(() => data && renderProjects(), 60000);
+</script>
+</body>
+</html>

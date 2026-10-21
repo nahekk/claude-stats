@@ -1,0 +1,16 @@
+{
+  "name": "claude-stats",
+  "version": "1.0.0",
+  "description": "Live, local dashboard for your Claude Code usage: GitHub-style heatmap, tokens, cost in USD and PLN, streaks.",
+  "bin": { "claude-stats": "server.js" },
+  "main": "server.js",
+  "scripts": { "start": "node server.js", "demo": "node server.js --demo" },
+  "files": ["server.js", "public"],
+  "engines": { "node": ">=18" },
+  "keywords": ["claude", "claude-code", "anthropic", "usage", "tokens", "stats", "heatmap", "dashboard"],
+  "author": "nahekk",
+  "license": "MIT",
+  "repository": { "type": "git", "url": "git+https://github.com/nahekk/claude-stats.git" },
+  "homepage": "https://github.com/nahekk/claude-stats#readme",
+  "bugs": { "url": "https://github.com/nahekk/claude-stats/issues" }
+}
